@@ -23,9 +23,9 @@ export function App() {
     <div className='content'>
       <h1>Example of Select component with overlayscrollbars</h1>
 
-      <Select value={value} onChange={setValue} menuScrollImplementation='native'>
+      {/* <Select value={value} onChange={setValue} menuScrollImplementation='native'>
         {options}
-      </Select>
+      </Select> */}
 
       <Select value={value} onChange={setValue} menuScrollImplementation='overlayscrollbars'>
         {options}

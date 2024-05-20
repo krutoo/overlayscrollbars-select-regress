@@ -2,6 +2,7 @@ import {
   HTMLAttributes,
   Ref,
   forwardRef,
+  useEffect,
   useImperativeHandle,
   useLayoutEffect,
   useRef,
@@ -53,7 +54,7 @@ export function CustomScrollbars({
       className={className}
       viewportProps={viewportProps}
       options={{
-        overflow,
+        ...(overflow && { overflow }),
       }}
     >
       {children}

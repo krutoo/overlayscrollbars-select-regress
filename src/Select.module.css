@@ -9,7 +9,16 @@
   align-items: center;
 }
 
+.Select.focused {
+  box-shadow: inset 0 0 0 1px #aaa;
+}
+
+.Select:focus {
+  outline: 2px solid #00f;
+}
+
 .Menu {
+  position: absolute;
   background: #fff;
   width: 240px;
   padding: 8px 0;
@@ -17,13 +26,17 @@
   border-radius: 4px;
 }
 
-.MenuNativeScroll {
+.Menu:focus {
+  outline: 2px solid #00f;
+}
+
+.Menu[data-scrollimpl='native'] {
   max-height: 240px;
   overflow: hidden;
   overflow-y: auto;
 }
 
-.MenuOverlayScrollbars {
+.Menu[data-scrollimpl='overlayscrollbars'] {
   max-height: 240px;
 }
 

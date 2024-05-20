@@ -1,15 +1,19 @@
 import {
-  ReactNode,
   createContext,
+  HTMLAttributes,
+  ReactNode,
+  Ref,
   useCallback,
   useContext,
   useEffect,
+  useImperativeHandle,
   useRef,
   useState,
 } from 'react';
+import { CustomScrollbars } from './CustomScrollbars';
+import { Portal } from './Portal';
 import classNames from 'classnames';
 import styles from './Select.module.css';
-import { CustomScrollbars } from './CustomScrollbars';
 
 export interface SelectProps {
   value: string;
@@ -18,12 +22,24 @@ export interface SelectProps {
   menuScrollImplementation?: 'native' | 'overlayscrollbars';
 }
 
+export interface SelectMenuProps extends HTMLAttributes<HTMLDivElement> {
+  rootRef?: Ref<HTMLDivElement>;
+}
+
 export interface OptionProps {
   value?: string;
   children?: ReactNode;
 }
 
-const SelectContext = createContext<(selectedValue: string) => void>(() => {});
+export interface SelectContextValue {
+  menuScrollImplementation: 'native' | 'overlayscrollbars';
+  onOptionSelected: (selectedValue: string) => void;
+}
+
+const SelectContext = createContext<SelectContextValue>({
+  menuScrollImplementation: 'native',
+  onOptionSelected() {},
+});
 
 export function Select({
   value,
@@ -31,92 +47,120 @@ export function Select({
   onChange,
   menuScrollImplementation = 'native',
 }: SelectProps) {
-  const menuRef = useRef<HTMLDivElement>(null);
   const fieldRef = useRef<HTMLDivElement>(null);
+  const [menuElement, setMenuElement] = useState<HTMLDivElement | null>(null);
 
   const [open, setOpen] = useState(false);
 
-  const onSelect = useCallback((selectedValue: string) => {
+  const onOptionSelected = useCallback((selectedValue: string) => {
     onChange?.(selectedValue);
     setOpen(false);
+    fieldRef.current?.focus();
   }, []);
 
   useEffect(() => {
-    const menu = menuRef.current;
-
-    if (open && menu) {
-      menu.focus();
+    if (menuElement) {
+      menuElement.focus();
     }
-  }, [open]);
+  }, [menuElement]);
 
-  useEffect(() => {
-    const menu = menuRef.current;
-
-    if (menu) {
-      const onBlur = () => {
+  const fieldProps: HTMLAttributes<HTMLDivElement> = {
+    role: 'combobox',
+    tabIndex: 0,
+    className: styles.Select,
+    onMouseDown: event => {
+      console.log('field mousedown');
+      !menuElement && event.preventDefault();
+      setOpen(a => !a);
+    },
+    onKeyDown: event => {
+      if (event.code === 'Enter') {
+        setOpen(a => !a);
+      }
+      if (event.code === 'Escape') {
         setOpen(false);
-      };
+      }
+    },
+  };
 
-      menu.addEventListener('blur', onBlur);
-
-      return () => {
-        menu.removeEventListener('blur', onBlur);
-      };
-    }
-  }, [open]);
+  const menuProps: HTMLAttributes<HTMLDivElement> = {
+    onBlur: event => {
+      console.log('menu blur', event.relatedTarget);
+      setOpen(false);
+    },
+    onKeyDown: event => {
+      if (event.code === 'Escape') {
+        setOpen(false);
+        fieldRef.current?.focus();
+      }
+    },
+  };
 
   return (
     <>
-      <SelectContext.Provider value={onSelect}>
-        <div
-          ref={fieldRef}
-          className={styles.Select}
-          tabIndex={0}
-          onMouseDown={event => {
-            !menuRef.current && event.preventDefault();
-            setOpen(a => !a);
-          }}
-        >
+      <SelectContext.Provider value={{ menuScrollImplementation, onOptionSelected }}>
+        <label>{menuScrollImplementation}</label>
+
+        <div ref={fieldRef} {...fieldProps}>
           {value}
         </div>
-        {open && (
-          <>
-            {/* it works with regular div with overflow */}
-            {menuScrollImplementation === 'native' && (
-              <div
-                ref={menuRef}
-                role='listbox'
-                tabIndex={0}
-                className={classNames(styles.Menu, styles.MenuNativeScroll)}
-              >
-                {children}
-              </div>
-            )}
 
-            {/* but not works with overlayscrollbars (but works with older versions for example 2.4.3) */}
-            {menuScrollImplementation === 'overlayscrollbars' && (
-              <CustomScrollbars
-                rootRef={menuRef}
-                role='listbox'
-                tabIndex={0}
-                className={classNames(styles.Menu, styles.MenuOverlayScrollbars)}
-                overflow={{ x: 'hidden', y: 'scroll' }}
-              >
-                {children}
-              </CustomScrollbars>
-            )}
-          </>
+        {open && (
+          <Portal>
+            <SelectMenu {...menuProps} rootRef={setMenuElement}>
+              {children}
+            </SelectMenu>
+          </Portal>
         )}
       </SelectContext.Provider>
     </>
   );
 }
 
-export function Option({ value, children }: OptionProps) {
-  const onSelect = useContext(SelectContext);
+function SelectMenu({ rootRef, children, ...restProps }: SelectMenuProps) {
+  const { menuScrollImplementation: scrollImpl } = useContext(SelectContext);
+
+  const ref = useRef<HTMLDivElement>(null);
+
+  useImperativeHandle<HTMLDivElement | null, HTMLDivElement | null>(rootRef, () => ref.current);
+
+  const innerProps: SelectMenuProps = {
+    ...restProps,
+    role: 'listbox',
+    tabIndex: 0,
+    className: classNames(styles.Menu, styles.MenuOverlayScrollbars),
+  };
 
   return (
-    <div className={styles.Option} onClick={() => onSelect(value ?? String(children))}>
+    <>
+      {/* it works with regular div with overflow */}
+      {scrollImpl === 'native' && (
+        <div {...innerProps} ref={ref}>
+          {children}
+        </div>
+      )}
+
+      {/* but not works with overlayscrollbars (but works with older versions for example 2.4.3) */}
+      {scrollImpl === 'overlayscrollbars' && (
+        <div {...innerProps} ref={ref}>
+          <CustomScrollbars style={{ maxHeight: 'calc(240px - 16px)' }}>
+            {children}
+          </CustomScrollbars>
+        </div>
+      )}
+    </>
+  );
+}
+
+export function Option({ value, children }: OptionProps) {
+  const { onOptionSelected } = useContext(SelectContext);
+
+  return (
+    <div
+      className={styles.Option}
+      onClick={() => onOptionSelected(value ?? String(children))}
+      role='option'
+    >
       {children}
     </div>
   );
