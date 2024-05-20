@@ -1,0 +1,40 @@
+.Select {
+  width: 240px;
+  height: 40px;
+  box-shadow: inset 0 0 0 1px #ddd;
+  border-radius: 4px;
+  padding: 0 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.Menu {
+  background: #fff;
+  width: 240px;
+  padding: 8px 0;
+  box-shadow: inset 0 0 0 1px #ddd;
+  border-radius: 4px;
+}
+
+.MenuNativeScroll {
+  max-height: 240px;
+  overflow: hidden;
+  overflow-y: auto;
+}
+
+.MenuOverlayScrollbars {
+  max-height: 240px;
+}
+
+.Option {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.Option:hover {
+  cursor: pointer;
+  background: #eee;
+}
